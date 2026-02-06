@@ -36,14 +36,6 @@ Built on a robust **Lifecycle System**:
 
 ---
 
-## 📸 Gallery
-
-<!-- Upload your images to imgur or github and replace these links -->
-![Main Menu Preview](https://via.placeholder.com/700x300?text=Preview+Main+Menu+GUI)
-![World Settings](https://via.placeholder.com/700x300?text=Preview+World+Settings)
-
----
-
 ## 📖 Detailed Features
 
 ### 🌟 Social System
