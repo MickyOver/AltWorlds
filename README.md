@@ -106,6 +106,9 @@ The plugin is designed to be GUI-first, but includes powerful commands for power
 
 AltWorlds allows you to tweak every detail. Example from `config.yml`:
 
+<details>
+<summary>📄 <b>Click here to expand the full config.yml</b></summary>
+
 ```yaml
 lobby:
   # Lobby world name (folder/world id). Values: any world name string.
@@ -590,3 +593,5 @@ performance:
   minWorldUptimeSeconds: 60
   # Preload spawn chunks when creating a world. Values: true|false.
   preloadSpawnChunksOnCreate: true
+  </details>
+```
