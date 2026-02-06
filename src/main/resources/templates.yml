@@ -1,0 +1,12 @@
+# Configuración visual de las plantillas.
+# El plugin lee las carpetas dentro de /plugins/AltWorlds/templates/
+# Si la carpeta aparece aquí, usará este icono y nombre.
+# Si no aparece, usará el nombre de la carpeta y un icono aleatorio.
+
+templates:
+  uno:
+    name: "&aBosque Mágico"
+    icon: "OAK_SAPLING"
+  dos:
+    name: "&bIsla Flotante"
+    icon: "FEATHER"

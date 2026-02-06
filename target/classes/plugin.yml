@@ -1,0 +1,33 @@
+name: AltWorlds
+version: 2.6.0
+main: com.altworlds.AltWorldsPlugin
+api-version: "1.21"
+author: Miguel
+description: Professional lobby + private worlds system.
+
+commands:
+  aw:
+    description: Main command
+    usage: /aw help
+    aliases: [altworlds]
+
+permissions:
+  altworlds.user:
+    description: Default user permissions
+    default: true
+    children:
+      altworlds.create: true
+      altworlds.tp: true
+      altworlds.menu: true
+      altworlds.sethome: true
+      altworlds.rename: true
+
+  altworlds.admin:
+    description: Full control
+    default: op
+    children:
+      altworlds.user: true
+      altworlds.reload: true
+      altworlds.manage.others: true
+      altworlds.bypass.border: true
+      altworlds.bypass.creation: true
