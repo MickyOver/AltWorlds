@@ -107,15 +107,486 @@ The plugin is designed to be GUI-first, but includes powerful commands for power
 AltWorlds allows you to tweak every detail. Example from `config.yml`:
 
 ```yaml
+lobby:
+  # Lobby world name (folder/world id). Values: any world name string.
+  worldName: "lobby"
+  # Auto-create the lobby world if it does not exist. Values: true|false.
+  autoCreate: true
+
+  # Menu item configuration (clock by default).
+  item:
+    # Give the menu item to players when they join. Values: true|false.
+    giveOnJoin: true
+    # Material for the menu item. Values: any Bukkit Material name.
+    material: "CLOCK"
+    # Inventory slot for the menu item (hotbar). Values: 0-8.
+    slot: 8
+    # Where to give the item. Values: LOBBY_ONLY or EVERYWHERE.
+    # LOBBY_ONLY: only while in lobby world (removed on exit).
+    # EVERYWHERE: in any world (useful for hubs).
+    scope: "EVERYWHERE"
+
+gui:
+  # Admin menu icons. Values: any Bukkit Material name.
+  admin:
+    # Icon for "View All Worlds".
+    view_all: COMMAND_BLOCK
+    # Icon for "Global Limit".
+    global_limit: ANVIL
+    # Icon for "Manage Players".
+    manage_players: PLAYER_HEAD
+    # Icon for "Customize This Menu".
+    customize: PAINTING
+
+  # Main menu icons. Values: any Bukkit Material name.
+  main:
+    # Icon for "My Worlds".
+    my_worlds: WRITABLE_BOOK
+    # Icon for "Explore Worlds".
+    explore: COMPASS
+    # Icon for "Create World".
+    create: GRASS_BLOCK
+    # Icon for "Lobby".
+    lobby: BEACON
+    # Icon for "Global World Icons".
+    global_settings: COMPARATOR
+    # Icon for "Server Worlds".
+    server_worlds: NETHER_STAR
+    # Icon for "Admin Settings".
+    admin: COMMAND_BLOCK
+    # Icon for "Auto-Join Home".
+    auto_join: REPEATER
+    # Icon for "Current World".
+    current_world: COMPARATOR
+    # Icon for "Customize Menu".
+    customize: PAINTING
+
+  # Explore menu icons. Values: any Bukkit Material name.
+  explore:
+    # Icon for "Sort: Players".
+    sort_players: PLAYER_HEAD
+    # Icon for "Sort: Likes".
+    sort_likes: EMERALD
+    # Icon for "Sort: Visits".
+    sort_visits: OAK_SIGN
+    # Icon for "Sort: Type".
+    sort_type: PAPER
+    # Icon for "Customize Menu".
+    customize: PAINTING
+
+  # Create menu icons (categories). Values: any Bukkit Material name.
+  create:
+    # Icon for "Vanilla".
+    vanilla: OAK_SAPLING
+    # Icon for "Templates".
+    templates: PAPER
+    # Icon for "Creative".
+    creative: DIAMOND_BLOCK
+    # Icon for "Admin / Private".
+    admin: COMMAND_BLOCK
+    # Icon for "Customize Menu".
+    customize: PAINTING
+
+  # Creative options menu icons. Values: any Bukkit Material name.
+  creative:
+    # Icon for "Vanilla Creative".
+    vanilla: GRASS_BLOCK
+    # Icon for "Flat Creative".
+    flat: SANDSTONE
+    # Icon for "Void Creative".
+    void: GLASS
+    # Icon for "Customize Menu".
+    customize: PAINTING
+
+  # World settings icons. Values: any Bukkit Material name.
+  settings:
+    # Icon for "Gamemode".
+    gamemode: GOLDEN_APPLE
+    # Icon for "PvP".
+    pvp: IRON_SWORD
+    # Icon for "Fly".
+    fly: FEATHER
+    # Icon for "Hunger".
+    hunger: ROTTEN_FLESH
+    # Icon for "Fall Damage".
+    fallDamage: LEATHER_BOOTS
+    # Icon for "Potions".
+    potions: BREWING_STAND
+    # Icon for "Allow Visitors".
+    allowVisitors: OAK_DOOR
+    # Icon for "Public Listing".
+    public: GLOBE_BANNER_PATTERN
+    # Icon for "Day/Night Cycle".
+    doDaylightCycle: CLOCK
+    # Icon for "Weather Cycle".
+    doWeatherCycle: WATER_BUCKET
+    # Icon for "Fire Spread".
+    doFireTick: FLINT_AND_STEEL
+    # Icon for "Mob Griefing".
+    mobGriefing: CREEPER_HEAD
+    # Icon for "Keep Inventory".
+    keepInventory: CHEST
+    # Icon for "Mob Spawning".
+    doMobSpawning: ZOMBIE_HEAD
+    # Icon for "Block Drops".
+    doTileDrops: GRAVEL
+    # Icon for "Crop Growth".
+    randomTickSpeed: WHEAT
+    # Icon for "World Border".
+    border: IRON_BARS
+
+login:
+  # If true, always skip the lobby on join. Values: true|false.
+  forceSkipLobby: false
+  # If true, players can toggle auto-join home from the GUI. Values: true|false.
+  allowUserSkipToggle: false
+
+# -------------------------------------------------------------
+# AUTO-WORLDS
+# -------------------------------------------------------------
+auto-worlds:
+  # Enable auto-worlds. Values: true|false.
+  enabled: true
+  # If true, auto-worlds are copied for each join. Values: true|false.
+  copyOnEveryJoin: true
+
+  # Whether auto-worlds count toward the player's max world limit. Values: true|false.
+  countTowardsLimit: false
+
+  # Special permissions for auto-worlds.
+  permissions:
+    # Allow users to delete auto-worlds. Values: true|false.
+    allowDelete: false
+    # Allow users to regenerate auto-worlds. Values: true|false.
+    allowRegen: false
+
+# -------------------------------------------------------------
+# ALL-WORLDS
+# -------------------------------------------------------------
+all-worlds:
+  # Whether server-wide worlds count toward player limits. Values: true|false.
+  countTowardsLimit: false
+
+# -------------------------------------------------------------
+# TELEPORTATION
+# -------------------------------------------------------------
+teleport:
+  # Teleport delay in seconds. Values: integer >= 0.
+  delay: 3
+  # Cancel teleport if player moves. Values: true|false.
+  cancelOnMove: false
+
+# -------------------------------------------------------------
+# RESTRICTIONS
+# -------------------------------------------------------------
+restrictions:
+  # Allow renaming worlds. Values: true|false.
+  allowRenaming: true
+  creation:
+    # Allow survival world creation. Values: true|false.
+    allowSurvival: true
+    # Allow template world creation. Values: true|false.
+    allowTemplates: true
+    # Allow creative world creation. Values: true|false.
+    allowCreative: true
+    creative:
+      # Allow vanilla creative worlds. Values: true|false.
+      vanilla: true
+      # Allow flat creative worlds. Values: true|false.
+      flat: true
+      # Allow void creative worlds. Values: true|false.
+      void: true
+
+  names:
+    # Minimum world name length. Values: integer >= 1.
+    minLength: 3
+    # Maximum world name length. Values: integer >= minLength.
+    maxLength: 16
+    # Regex for allowed names. Values: regex string.
+    regex: "^[a-zA-Z0-9_-]+$"
+    # Error message for invalid names (supports color codes). Values: string.
+    errorMessage: "&cInvalid name! Use a-z, 0-9, _ or - (3-16 chars)."
+
+# -------------------------------------------------------------
+# LIMITS & INVITATIONS
+# -------------------------------------------------------------
 limits:
-  maxWorldsPerPlayer: 3  # Default limit (admins can change this per player)
+  # Default max worlds per player. Values: integer >= -1 (-1 = unlimited).
+  maxWorldsPerPlayer: 3
+  # If true, joined/invited worlds count toward max limit. Values: true|false.
+  invitedWorldsCount: false
+
+invitations:
+  # Invitation expiration in seconds. Values: integer >= 0.
+  timeout: 60
+
+# -------------------------------------------------------------
+# BANS
+# -------------------------------------------------------------
+bans:
+  # Presets for temporary ban menu. Format examples: 30s, 10m, 2h, 1d.
+  temp-presets:
+    - "5m"
+    - "30m"
+    - "1h"
+    - "6h"
+    - "1d"
+    - "7d"
+
+defaults:
+  # Default max worlds per player (fallback). Values: integer >= -1.
+  maxWorldsPerPlayer: 3
+  # Default member gamemode. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+  memberGamemode: "SURVIVAL"
+  # Default visitor gamemode. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+  visitorGamemode: "SPECTATOR"
+
+# Default settings used when generating new world configs.
+world-defaults:
+  survival:
+    # Default gamemode for survival worlds. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: SURVIVAL
+    # Allow PvP. Values: true|false.
+    pvp: true
+    # Allow flight. Values: true|false.
+    fly: false
+    # Enable hunger loss. Values: true|false.
+    hunger: true
+    # Enable fall damage. Values: true|false.
+    fallDamage: true
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: true
+    # Fire spread. Values: true|false.
+    doFireTick: true
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: true
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: true
+    # Block drops on break. Values: true|false.
+    doTileDrops: true
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: true
+
+  creative:
+    # Default gamemode for creative worlds. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: CREATIVE
+    # Allow PvP. Values: true|false.
+    pvp: false
+    # Allow flight. Values: true|false.
+    fly: true
+    # Enable hunger loss. Values: true|false.
+    hunger: false
+    # Enable fall damage. Values: true|false.
+    fallDamage: false
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: false
+    # Fire spread. Values: true|false.
+    doFireTick: false
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: false
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: false
+    # Block drops on break. Values: true|false.
+    doTileDrops: false
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: false
+
+  templates:
+    # Default gamemode for template worlds. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: SURVIVAL
+    # Allow PvP. Values: true|false.
+    pvp: true
+    # Allow flight. Values: true|false.
+    fly: false
+    # Enable hunger loss. Values: true|false.
+    hunger: true
+    # Enable fall damage. Values: true|false.
+    fallDamage: true
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: true
+    # Fire spread. Values: true|false.
+    doFireTick: true
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: true
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: true
+    # Block drops on break. Values: true|false.
+    doTileDrops: true
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: true
+
+  all-worlds:
+    # Default gamemode for server/all worlds. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: SURVIVAL
+    # Allow PvP. Values: true|false.
+    pvp: true
+    # Allow flight. Values: true|false.
+    fly: false
+    # Enable hunger loss. Values: true|false.
+    hunger: true
+    # Enable fall damage. Values: true|false.
+    fallDamage: true
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: true
+    # Fire spread. Values: true|false.
+    doFireTick: true
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: true
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: true
+    # Block drops on break. Values: true|false.
+    doTileDrops: true
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: true
+
+  auto-worlds:
+    # Default gamemode for auto-worlds. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: SURVIVAL
+    # Allow PvP. Values: true|false.
+    pvp: true
+    # Allow flight. Values: true|false.
+    fly: false
+    # Enable hunger loss. Values: true|false.
+    hunger: true
+    # Enable fall damage. Values: true|false.
+    fallDamage: true
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: true
+    # Fire spread. Values: true|false.
+    doFireTick: true
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: true
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: true
+    # Block drops on break. Values: true|false.
+    doTileDrops: true
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: true
+
+  private-worlds:
+    # Default gamemode for private templates. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: CREATIVE
+    # Allow PvP. Values: true|false.
+    pvp: false
+    # Allow flight. Values: true|false.
+    fly: true
+    # Enable hunger loss. Values: true|false.
+    hunger: false
+    # Enable fall damage. Values: true|false.
+    fallDamage: false
+    # Allow potion usage. Values: true|false.
+    potions: true
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: true
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: true
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: false
+    # Fire spread. Values: true|false.
+    doFireTick: false
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: false
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: false
+    # Block drops on break. Values: true|false.
+    doTileDrops: false
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: false
+
+  lobby:
+    # Default gamemode for lobby. Values: SURVIVAL|CREATIVE|ADVENTURE|SPECTATOR.
+    gamemode: ADVENTURE
+    # Allow PvP. Values: true|false.
+    pvp: false
+    # Allow flight. Values: true|false.
+    fly: false
+    # Enable hunger loss. Values: true|false.
+    hunger: false
+    # Enable fall damage. Values: true|false.
+    fallDamage: false
+    # Allow potion usage. Values: true|false.
+    potions: false
+    # Allow visitors to join. Values: true|false.
+    allowVisitors: true
+    # Show in public listings. Values: true|false.
+    public: false
+    # Day/night cycle. Values: true|false.
+    doDaylightCycle: false
+    # Weather cycle. Values: true|false.
+    doWeatherCycle: false
+    # Fire spread. Values: true|false.
+    doFireTick: false
+    # Mob griefing (creepers, etc.). Values: true|false.
+    mobGriefing: false
+    # Keep inventory on death. Values: true|false.
+    keepInventory: true
+    # Natural mob spawning. Values: true|false.
+    doMobSpawning: false
+    # Block drops on break. Values: true|false.
+    doTileDrops: false
+    # Crop growth (tick speed). Values: true|false.
+    randomTickSpeed: false
 
 performance:
+  # Unload worlds when empty. Values: true|false.
   unloadWorldsWhenEmpty: true
-  unloadDelaySeconds: 45 # Time before unloading an empty world
-  minWorldUptimeSeconds: 60 # Minimum uptime for a world after loading
-
-restrictions:
-  creation:
-    allowCreative: true
-    allowTemplates: true
+  # Delay before unloading empty worlds (seconds). Values: integer >= 0.
+  unloadDelaySeconds: 45
+  # Minimum uptime before a world can be unloaded (seconds). Values: integer >= 0.
+  minWorldUptimeSeconds: 60
+  # Preload spawn chunks when creating a world. Values: true|false.
+  preloadSpawnChunksOnCreate: true
