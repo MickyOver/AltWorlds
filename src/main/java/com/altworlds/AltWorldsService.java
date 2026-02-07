@@ -74,12 +74,12 @@ public class AltWorldsService implements Listener {
         }
     }
 
-    private static Difficulty parseDifficulty(String raw, Difficulty fallback) {
-        if (raw == null || raw.isBlank()) return fallback;
+    private static Difficulty parseDifficulty(String raw) {
+        if (raw == null || raw.isBlank()) return Difficulty.NORMAL;
         try {
             return Difficulty.valueOf(raw.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            return fallback;
+            return Difficulty.NORMAL;
         }
     }
 
@@ -824,10 +824,8 @@ public class AltWorldsService implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
         UUID uuid = p.getUniqueId();
-        if (pendingTeleports.containsKey(uuid)) {
-            pendingTeleports.get(uuid).cancel();
-            pendingTeleports.remove(uuid);
-        }
+        BukkitTask pending = pendingTeleports.remove(uuid);
+        if (pending != null) pending.cancel();
         saveLastLocation(p, p.getLocation());
         savePlayerInventory(p, p.getWorld());
         unloadPlayerConfig(uuid);
@@ -1458,7 +1456,6 @@ public class AltWorldsService implements Listener {
         String internalPath = config.getString("worlds." + oldName + ".internal");
         if (internalPath == null) {
             p.sendMessage("§cWorld not found.");
-            return;
         }
         World w = Bukkit.getWorld(internalPath);
 
@@ -1597,7 +1594,6 @@ public class AltWorldsService implements Listener {
         if (isOwner(p, w.getName()) || p.hasPermission("altworlds.admin")) {
             w.getWorldBorder().reset();
             p.sendMessage("§aWorld border removed.");
-            return;
         }
     }
 
@@ -1676,7 +1672,7 @@ public class AltWorldsService implements Listener {
         }
     }
 
-    public boolean teleportToLobby(Player p) {
+    public void teleportToLobby(Player p) {
         if (!isLobbyWorld(p.getWorld().getName())) saveLastLocation(p, p.getLocation());
         World w = Bukkit.getWorld(BASE_LOBBY_PATH);
         if (w == null) w = Bukkit.getWorld("world");
@@ -1694,9 +1690,7 @@ public class AltWorldsService implements Listener {
                 p.setGameMode(parseGameMode(mode, GameMode.ADVENTURE));
                 updatePlayerInventory(p);
             });
-            return true;
         }
-        return false;
     }
 
     public Map<UUID, String> getKnownPlayers() {
@@ -2249,7 +2243,7 @@ public class AltWorldsService implements Listener {
         world.setGameRule(GameRule.DO_TILE_DROPS, true);
 
         String diffStr = getSettingString(owner, realName, "difficulty", "NORMAL");
-        Difficulty diff = parseDifficulty(diffStr, Difficulty.NORMAL);
+        Difficulty diff = parseDifficulty(diffStr);
         world.setDifficulty(diff);
     }
 
@@ -2516,6 +2510,7 @@ public class AltWorldsService implements Listener {
     }
     public List<String> listPlayerWorlds(UUID uuid) { ConfigurationSection s = getPlayerConfig(uuid).getConfigurationSection("worlds"); return s == null ? new ArrayList<>() : new ArrayList<>(s.getKeys(false)); }
 
+    @SuppressWarnings("unused")
     public List<String> getAllWorlds() {
         List<String> all = new ArrayList<>();
         File[] files = playersDataFolder.listFiles((dir, name) -> name.endsWith(".yml"));

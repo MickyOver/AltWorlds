@@ -103,7 +103,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openMain(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 36, c("AltWorlds: Main Menu"));
+        Inventory inv = createMenu(36, "AltWorlds: Main Menu");
         AltWorldsService svc = plugin.getService();
 
         // Iconos centrales
@@ -151,7 +151,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openGuiEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 36, c("Edit: Main Menu"));
+        Inventory inv = createMenu(36, "Edit: Main Menu");
         AltWorldsService svc = plugin.getService();
         inv.setItem(10, createItem(svc.getGuiIcon("main.my_worlds", Material.WRITABLE_BOOK), "§eMy Worlds", "§eClick to change icon"));
         inv.setItem(12, createItem(svc.getGuiIcon("main.explore", Material.COMPASS), "§6Explore Worlds", "§eClick to change icon"));
@@ -176,7 +176,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openServerWorlds(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("AltWorlds: Server Worlds"));
+        Inventory inv = createMenu(54, "AltWorlds: Server Worlds");
         List<String> allWorlds = plugin.getService().getAllWorldsList();
         for (String wName : allWorlds) {
             Material icon = plugin.getService().getWorldIcon(AltWorldsService.SERVER_UUID, wName);
@@ -187,7 +187,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openAdminSettings(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Admin: Settings"));
+        Inventory inv = createMenu(27, "Admin: Settings");
         AltWorldsService svc = plugin.getService();
 
         // Usamos svc.getGuiIcon para leer de la config
@@ -206,7 +206,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openAdminGuiEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Edit: Admin Menu"));
+        Inventory inv = createMenu(27, "Edit: Admin Menu");
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(11, createItem(svc.getGuiIcon("admin.view_all", Material.COMMAND_BLOCK), "§eView All Worlds", "§eClick to change icon (admin.view_all)"));
@@ -218,7 +218,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openPlayerList(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Admin: Player List"));
+        Inventory inv = createMenu(54, "Admin: Player List");
         Map<UUID, String> players = plugin.getService().getKnownPlayers();
         int slot = 0;
         for (Map.Entry<UUID, String> entry : players.entrySet()) {
@@ -241,7 +241,7 @@ public class AltWorldsGUI implements Listener {
     private void openPlayerInspector(Player admin, UUID targetUuid) {
         YamlConfiguration config = plugin.getService().getPlayerConfig(targetUuid);
         String name = config.getString("name", "Unknown");
-        Inventory inv = Bukkit.createInventory(null, 27, c("Inspect: " + name));
+        Inventory inv = createMenu(27, "Inspect: " + name);
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = getSkullMeta(head);
         if (meta == null) {
@@ -271,7 +271,7 @@ public class AltWorldsGUI implements Listener {
     private void openPlayerWorldsList(Player admin, UUID targetUuid) {
         YamlConfiguration config = plugin.getService().getPlayerConfig(targetUuid);
         String name = config.getString("name", "Unknown");
-        Inventory inv = Bukkit.createInventory(null, 54, c("Worlds: " + name));
+        Inventory inv = createMenu(54, "Worlds: " + name);
         List<String> worlds = plugin.getService().listPlayerWorlds(targetUuid);
         for (String wName : worlds) {
             String path = "worlds." + wName;
@@ -297,7 +297,7 @@ public class AltWorldsGUI implements Listener {
 
     public void openAdminAllWorlds(Player p) {
         String sort = explorerSort.getOrDefault(p.getUniqueId(), "players");
-        Inventory inv = Bukkit.createInventory(null, 54, c("Admin: All Worlds (" + capitalize(sort)) + ")");
+        Inventory inv = createMenu(54, "Admin: All Worlds (" + capitalize(sort) + ")");
         AltWorldsService svc = plugin.getService();
 
         // Botones de ordenamiento (Mismos que Explorer)
@@ -336,7 +336,7 @@ public class AltWorldsGUI implements Listener {
 
     public void openExplorer(Player p) {
         String sort = explorerSort.getOrDefault(p.getUniqueId(), "players");
-        Inventory inv = Bukkit.createInventory(null, 54, c("Explore: " + capitalize(sort)));
+        Inventory inv = createMenu(54, "Explore: " + capitalize(sort));
         AltWorldsService svc = plugin.getService();
 
         // Iconos desde config
@@ -379,7 +379,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openCategorySelector(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Create: Select Category"));
+        Inventory inv = createMenu(27, "Create: Select Category");
         AltWorldsService svc = plugin.getService();
         boolean allowSurvival = plugin.getConfig().getBoolean("restrictions.creation.allowSurvival", true);
         boolean allowTemplates = plugin.getConfig().getBoolean("restrictions.creation.allowTemplates", true);
@@ -403,7 +403,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openCreativeOptions(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Create: Creative Options"));
+        Inventory inv = createMenu(27, "Create: Creative Options");
         AltWorldsService svc = plugin.getService();
         boolean allowVanilla = plugin.getConfig().getBoolean("restrictions.creation.creative.vanilla", true);
         boolean allowFlat = plugin.getConfig().getBoolean("restrictions.creation.creative.flat", true);
@@ -424,7 +424,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openWorldManager(Player p, String worldName) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Manage: " + worldName));
+        Inventory inv = createMenu(54, "Manage: " + worldName);
         AltWorldsService svc = plugin.getService();
         String internal = p.getWorld().getName();
 
@@ -551,7 +551,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openSettingsIconEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Edit: World Settings"));
+        Inventory inv = createMenu(54, "Edit: World Settings");
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(0, createItem(svc.getGuiIcon("manage.set_home", Material.RED_BED), "§6Set as Home", "§eClick to change icon"));
@@ -577,7 +577,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openMembersManager(Player p, String worldName, UUID ownerUuid) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Members: " + worldName));
+        Inventory inv = createMenu(54, "Members: " + worldName);
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(4, createItem(Material.EMERALD, "§a§lInvite Player", "§7Click to select an\n§7online player to invite."));
@@ -634,7 +634,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openBannedList(Player p, String worldName, UUID ownerUuid) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Banned: " + worldName));
+        Inventory inv = createMenu(54, "Banned: " + worldName);
         YamlConfiguration config = plugin.getService().getPlayerConfig(ownerUuid);
         String base = "worlds." + worldName + ".banned";
         ConfigurationSection banned = config.getConfigurationSection(base);
@@ -677,7 +677,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openTempBanMenu(Player p, BanRequest req) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Temp Ban: " + req.targetName));
+        Inventory inv = createMenu(27, "Temp Ban: " + req.targetName);
         pendingBanTempSelect.put(p.getUniqueId(), req);
 
         List<String> presets = plugin.getConfig().getStringList("bans.temp-presets");
@@ -703,7 +703,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openBanConfirmMenu(Player p, BanRequest req) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Confirm Ban: " + req.targetName));
+        Inventory inv = createMenu(27, "Confirm Ban: " + req.targetName);
         pendingBanConfirm.put(p.getUniqueId(), req);
 
         String durationLabel = (req.durationSeconds == -1) ? "Permanent" : formatDurationSeconds(req.durationSeconds);
@@ -715,7 +715,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openOnlinePlayersSelector(Player p, String worldName) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Invite to: " + worldName));
+        Inventory inv = createMenu(54, "Invite to: " + worldName);
         AltWorldsService svc = plugin.getService();
         UUID ownerUuid = svc.getOwnerUuidByInternalWorldName(p.getWorld().getName());
         int slot = 0;
@@ -765,8 +765,6 @@ public class AltWorldsGUI implements Listener {
 
         Player p = (Player) e.getWhoClicked();
         String name = plainDisplayName(currentMeta);
-        String strippedName = name;
-
         // --- SISTEMA DE BACK BUTTON ---
         if (name.contains("Back")) {
             if (title.startsWith("Icon:")) {
@@ -786,8 +784,7 @@ public class AltWorldsGUI implements Listener {
             else if (title.equals("Admin: Player List")) openAdminSettings(p);
             else if (title.equals("Admin: Settings")) openMain(p);
             else if (title.startsWith("Inspect:")) openPlayerList(p);
-
-                // CORREGIDO: LÃ³gica robusta para volver de "Worlds: Jugador"
+            // CORREGIDO: Logica robusta para volver de "Worlds: Jugador"
             else if (title.startsWith("Worlds:")) {
                 UUID target = null;
 
@@ -795,24 +792,20 @@ public class AltWorldsGUI implements Listener {
                 if (currentMeta.hasLore()) {
                     List<String> lore = plainLore(currentMeta);
                     for (String line : lore) {
-                        String cleanLine = line;
-
-                        if (cleanLine.startsWith("ID:")) {
-                            String uuidStr = cleanLine.replace("ID:", "").trim();
+                        if (line.startsWith("ID:")) {
+                            String uuidStr = line.replace("ID:", "").trim();
                             UUID parsed = parseUuid(uuidStr);
                             if (parsed != null) target = parsed;
                             break;
                         }
                     }
                 }
-
-                // 2. Plan B: Si falla el Lore, intentar por nombre del tÃ­tulo
+                // 2. Plan B: Si falla el Lore, intentar por nombre del titulo
                 if (target == null) {
                     String playerName = title.replace("Worlds: ", "").trim();
                     target = plugin.getService().findPlayerUuidByName(playerName);
                 }
-
-                // 3. Ejecutar acciÃ³n
+                // 3. Ejecutar accion
                 if (target != null) {
                     openPlayerInspector(p, target);
                 } else {
@@ -876,7 +869,7 @@ public class AltWorldsGUI implements Listener {
         // --- MENÃš PRINCIPAL ---
         //noinspection IfCanBeSwitch
         if (title.equals("AltWorlds: Main Menu")) {
-            switch (strippedName) {
+            switch (name) {
                 case "Create World" -> openCategorySelector(p);
                 case "My Worlds" -> openMyWorlds(p);
                 case "Explore Worlds" -> { explorerSort.put(p.getUniqueId(), "players"); openExplorer(p); }
@@ -901,8 +894,7 @@ public class AltWorldsGUI implements Listener {
             }
             return;
         }
-
-        // --- NUEVO: GESTIÃ“N DE GLOBAL ICONS ---
+        // --- NUEVO: GESTION DE GLOBAL ICONS ---
         if (title.equals("Admin: Global Icons")) {
             if (name.contains("Customize Menu")) {
                 openGlobalIconsEditor(p);
@@ -913,9 +905,7 @@ public class AltWorldsGUI implements Listener {
 
         if (title.equals("Edit: Global Icons")) {
             if (name.contains("Exit")) { openGlobalSettingsPreview(p); return; }
-
-            String strippedClicked = name;
-            String key = switch (strippedClicked) {
+            String key = switch (name) {
                 case "Set as Home" -> "manage.set_home";
                 case "Change Icon" -> "manage.change_icon";
                 case "Rename World" -> "manage.rename";
@@ -928,8 +918,7 @@ public class AltWorldsGUI implements Listener {
             };
             if (key == null) {
                 for (WorldSettings s : WorldSettings.values()) {
-                    String strippedSetting = s.getDisplayName();
-                    if (strippedClicked.contains(strippedSetting)) {
+                    if (name.contains(s.getDisplayName())) {
                         key = "settings." + s.getKey();
                         break;
                     }
@@ -969,14 +958,14 @@ public class AltWorldsGUI implements Listener {
         // --- GESTIÃ“N DE EDITORES (Customize Menu) ---
         if (title.equals("Edit: Main Menu")) {
             if (name.contains("Exit Editor")) { openMain(p); return; }
-            String key = resolveMainMenuEditKey(strippedName);
+            String key = resolveMainMenuEditKey(name);
             if (key != null) openIconSelector(p, "gui." + key, 0);
             return;
         }
 
         if (title.equals("Edit: Explore Menu")) {
             if (name.contains("Exit")) { openExplorer(p); return; }
-            String key = switch (strippedName) {
+            String key = switch (name) {
                 case "Sort: Players" -> "explore.sort_players";
                 case "Sort: Likes" -> "explore.sort_likes";
                 case "Sort: Visits" -> "explore.sort_visits";
@@ -990,7 +979,7 @@ public class AltWorldsGUI implements Listener {
 
         if (title.equals("Edit: Create Menu")) {
             if (name.contains("Exit")) { openCategorySelector(p); return; }
-            String key = switch (strippedName) {
+            String key = switch (name) {
                 case "Vanilla" -> "create.vanilla";
                 case "Templates" -> "create.templates";
                 case "Creative" -> "create.creative";
@@ -1004,7 +993,7 @@ public class AltWorldsGUI implements Listener {
 
         if (title.equals("Edit: Creative Menu")) {
             if (name.contains("Exit")) { openCreativeOptions(p); return; }
-            String key = switch (strippedName) {
+            String key = switch (name) {
                 case "Vanilla" -> "creative.vanilla";
                 case "Flat" -> "creative.flat";
                 case "Void" -> "creative.void";
@@ -1017,7 +1006,7 @@ public class AltWorldsGUI implements Listener {
 
         if (title.equals("Edit: Admin Menu")) {
             if (name.contains("Exit")) { openAdminSettings(p); return; }
-            String key = switch (strippedName) {
+            String key = switch (name) {
                 case "View All Worlds" -> "admin.view_all";
                 case "Global Limit" -> "admin.global_limit";
                 case "Manage Players" -> "admin.manage_players";
@@ -1035,8 +1024,7 @@ public class AltWorldsGUI implements Listener {
                 else openMain(p);
                 return;
             }
-            String strippedClicked = name;
-            String key = switch (strippedClicked) {
+            String key = switch (name) {
                 case "Set as Home" -> "manage.set_home";
                 case "Change Icon" -> "manage.change_icon";
                 case "Rename World" -> "manage.rename";
@@ -1049,8 +1037,7 @@ public class AltWorldsGUI implements Listener {
             };
             if (key == null) {
                 for (WorldSettings s : WorldSettings.values()) {
-                    String strippedSetting = s.getDisplayName();
-                    if (strippedClicked.contains(strippedSetting)) {
+                    if (name.contains(s.getDisplayName())) {
                         key = "settings." + s.getKey();
                         break;
                     }
@@ -1137,12 +1124,11 @@ public class AltWorldsGUI implements Listener {
 
         if (title.startsWith("Worlds:")) {
             if (e.getCurrentItem().getType() != Material.AIR && !name.contains("Back")) {
-                String wName = name;
                 String playerName = title.replace("Worlds: ", "");
                 UUID target = plugin.getService().findPlayerUuidByName(playerName);
                 if (target != null) {
-                    if (e.isShiftClick()) openMembersManager(p, wName, target);
-                    else plugin.getService().teleportToWorld(p, target, wName);
+                    if (e.isShiftClick()) openMembersManager(p, name, target);
+                    else plugin.getService().teleportToWorld(p, target, name);
                 }
             }
         }
@@ -1276,8 +1262,7 @@ public class AltWorldsGUI implements Listener {
                 return;
             }
 
-            String clean = name.trim();
-            long seconds = parseDurationSeconds(clean);
+            long seconds = parseDurationSeconds(name.trim());
             if (seconds == Long.MIN_VALUE) {
                 p.sendMessage("§cInvalid time.");
                 return;
@@ -1380,8 +1365,7 @@ public class AltWorldsGUI implements Listener {
         }
 
         if (title.contains("Select Private")) {
-            String folderName = name;
-            prepareWizard(p, "privatetemplate:" + folderName, "NORMAL", GameMode.SURVIVAL);
+            prepareWizard(p, "privatetemplate:" + name, "NORMAL", GameMode.SURVIVAL);
         }
 
         if (title.startsWith("Manage:")) {
@@ -1448,28 +1432,27 @@ public class AltWorldsGUI implements Listener {
                 return;
             }
 
-            String cleanName = name;
             for (WorldSettings s : WorldSettings.values()) {
-                if (s.getDisplayName().equals(cleanName)) {
+                if (s.getDisplayName().equals(name)) {
                     UUID owner = plugin.getService().getOwnerUuidByInternalWorldName(p.getWorld().getName());
-                    if(owner==null) owner=p.getUniqueId(); // Fallback
+                    if (owner == null) owner = p.getUniqueId(); // Fallback
 
-                        if (s == WorldSettings.DIFFICULTY) {
-                            String current = plugin.getService().getSettingString(owner, wName, s.getKey(), "NORMAL");
-                            String[] order = new String[] { "PEACEFUL", "NORMAL", "HARD" };
-                            String next = "NORMAL";
-                            for (int i = 0; i < order.length; i++) {
-                                if (order[i].equalsIgnoreCase(current)) {
-                                    next = order[(i + 1) % order.length];
-                                    break;
-                                }
+                    if (s == WorldSettings.DIFFICULTY) {
+                        String current = plugin.getService().getSettingString(owner, wName, s.getKey(), "NORMAL");
+                        String[] order = new String[] { "PEACEFUL", "NORMAL", "HARD" };
+                        String next = "NORMAL";
+                        for (int i = 0; i < order.length; i++) {
+                            if (order[i].equalsIgnoreCase(current)) {
+                                next = order[(i + 1) % order.length];
+                                break;
                             }
-                            plugin.getService().setWorldSettingString(owner, wName, s.getKey(), next);
-                        } else {
-                            boolean current = plugin.getService().getSetting(owner, wName, s.getKey(), false);
-                            plugin.getService().setWorldSetting(owner, wName, s.getKey(), !current);
                         }
-                        openWorldManager(p, wName);
+                        plugin.getService().setWorldSettingString(owner, wName, s.getKey(), next);
+                    } else {
+                        boolean current = plugin.getService().getSetting(owner, wName, s.getKey(), false);
+                        plugin.getService().setWorldSetting(owner, wName, s.getKey(), !current);
+                    }
+                    openWorldManager(p, wName);
                     break;
                 }
             }
@@ -1525,8 +1508,7 @@ public class AltWorldsGUI implements Listener {
             // LÃ³gica de teletransporte para Admin All Worlds
             if (!name.contains("Sort") && !name.contains("Back")) {
                 // El nombre viene como "Owner: WorldName" en colores
-                String clean = name;
-                String[] parts = clean.split(": ");
+                String[] parts = name.split(": ");
                 if(parts.length == 2) {
                     UUID target = plugin.getService().findPlayerUuidByName(parts[0]);
                     String wName = parts[1];
@@ -1605,7 +1587,7 @@ public class AltWorldsGUI implements Listener {
 
 
     public void openMyWorlds(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("AltWorlds: My Worlds"));
+        Inventory inv = createMenu(54, "AltWorlds: My Worlds");
         UUID uuid = p.getUniqueId();
         AltWorldsService svc = plugin.getService();
 
@@ -1643,7 +1625,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openTemplateSelector(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Create: Select Template"));
+        Inventory inv = createMenu(54, "Create: Select Template");
         TemplatesConfig tc = plugin.getService().getTemplates();
 
         // BotÃ³n para editar iconos de templates (Solo admin)
@@ -1659,7 +1641,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openPrivateTemplateSelector(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Create: Select Private"));
+        Inventory inv = createMenu(54, "Create: Select Private");
         List<String> privates = plugin.getService().getPrivateTemplates();
         for (String folder : privates) {
             inv.addItem(createItem(Material.COMMAND_BLOCK, "§c" + folder, "§7Click to use private template"));
@@ -1669,7 +1651,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     private void openIconSelector(Player p, String context, int page) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Icon: " + context + " #" + page));
+        Inventory inv = createMenu(54, "Icon: " + context + " #" + page);
 
         int itemsPerPage = 45;
         int start = page * itemsPerPage;
@@ -1763,7 +1745,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openExploreEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Edit: Explore Menu"));
+        Inventory inv = createMenu(54, "Edit: Explore Menu");
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(0, createItem(svc.getGuiIcon("explore.sort_players", Material.PLAYER_HEAD), "§eSort: Players", "§eClick to change"));
@@ -1779,7 +1761,7 @@ public class AltWorldsGUI implements Listener {
 
     // Editor especÃ­fico para los iconos globales de settings
     public void openGlobalIconsEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Edit: Global Icons"));
+        Inventory inv = createMenu(54, "Edit: Global Icons");
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(0, createItem(svc.getGuiIcon("manage.set_home", Material.RED_BED), "§6Set as Home", "§eClick to change icon"));
@@ -1803,7 +1785,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openCreateEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Edit: Create Menu"));
+        Inventory inv = createMenu(27, "Edit: Create Menu");
         AltWorldsService svc = plugin.getService();
         inv.setItem(11, createItem(svc.getGuiIcon("create.vanilla", Material.OAK_SAPLING), "§aVanilla", "§eClick to change"));
         inv.setItem(13, createItem(svc.getGuiIcon("create.templates", Material.PAPER), "§dTemplates", "§eClick to change"));
@@ -1814,7 +1796,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openCreativeEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 27, c("Edit: Creative Menu"));
+        Inventory inv = createMenu(27, "Edit: Creative Menu");
         AltWorldsService svc = plugin.getService();
         inv.setItem(11, createItem(svc.getGuiIcon("creative.vanilla", Material.GRASS_BLOCK), "§bVanilla", "§eClick to change"));
         inv.setItem(13, createItem(svc.getGuiIcon("creative.flat", Material.SANDSTONE), "§bFlat", "§eClick to change"));
@@ -1824,7 +1806,7 @@ public class AltWorldsGUI implements Listener {
     }
 
     public void openTemplateIconEditor(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Edit: Templates"));
+        Inventory inv = createMenu(54, "Edit: Templates");
         TemplatesConfig tc = plugin.getService().getTemplates();
         for (String folder : tc.getTemplateFolders()) {
             inv.addItem(createItem(tc.getIcon(folder), tc.getDisplayName(folder), "§eClick to change icon"));
@@ -1835,7 +1817,7 @@ public class AltWorldsGUI implements Listener {
 
     // MenÃº visual para que el admin cambie los iconos globales desde el lobby
     public void openGlobalSettingsPreview(Player p) {
-        Inventory inv = Bukkit.createInventory(null, 54, c("Admin: Global Icons"));
+        Inventory inv = createMenu(54, "Admin: Global Icons");
         AltWorldsService svc = plugin.getService();
 
         inv.setItem(0, createItem(svc.getGuiIcon("manage.set_home", Material.RED_BED), "§6Set as Home", "§7(Icon Preview)"));
@@ -1906,8 +1888,8 @@ public class AltWorldsGUI implements Listener {
         return out.toString().trim();
     }
 
-    private String resolveMainMenuEditKey(String strippedName) {
-        return switch (strippedName) {
+    private String resolveMainMenuEditKey(String name) {
+        return switch (name) {
             case "My Worlds" -> "main.my_worlds";
             case "Explore Worlds" -> "main.explore";
             case "Create World" -> "main.create";
@@ -1971,6 +1953,11 @@ public class AltWorldsGUI implements Listener {
         return (meta instanceof SkullMeta skull) ? skull : null;
     }
 
+    @SuppressWarnings("deprecation")
+    private static Inventory createMenu(int size, String title) {
+        return Bukkit.createInventory(null, size, c(title));
+    }
+
     private String capitalize(String str) { return str.substring(0, 1).toUpperCase() + str.substring(1); }
     private ItemStack createItem(Material mat, String name, String lore) {
         ItemStack i = new ItemStack(mat != null ? mat : Material.STONE);
@@ -1983,6 +1970,16 @@ public class AltWorldsGUI implements Listener {
         return i;
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
