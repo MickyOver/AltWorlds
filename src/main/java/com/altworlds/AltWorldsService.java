@@ -1907,6 +1907,7 @@ public class AltWorldsService implements Listener {
             owner.sendMessage("§cWorld not found.");
             return;
         }
+        final String internalPathFinal = internalPath;
 
         // Validar permisos si es auto-world...
         if (type.startsWith("autoworld:") && !plugin.getConfig().getBoolean("auto-worlds.permissions.allowRegen", false) && !owner.hasPermission("altworlds.admin")) {
@@ -1915,15 +1916,15 @@ public class AltWorldsService implements Listener {
         }
 
         // 2. Sacar jugadores del mundo y descargar
-        World w = Bukkit.getWorld(internalPath);
+        World w = Bukkit.getWorld(internalPathFinal);
         if (w != null) {
             for (Player p : w.getPlayers()) forceInstantLobby(p);
             Bukkit.unloadWorld(w, false);
         }
 
         // 3. Borrar solo los ARCHIVOS del mundo (regiones, datos), NO la config del jugador
-        worldManager.removeHandle(new File(internalPath).getName());
-        File worldFolder = new File(internalPath);
+        worldManager.removeHandle(new File(internalPathFinal).getName());
+        File worldFolder = new File(internalPathFinal);
 
         // Borramos el contenido de la carpeta, excepto backups si hubiese (borramos todo para regenerar limpio)
         try {
@@ -1967,7 +1968,7 @@ public class AltWorldsService implements Listener {
 
             // Volver al hilo principal para cargar
             Bukkit.getScheduler().runTask(plugin, () -> {
-                WorldCreator wc = new WorldCreator(internalPath.replace("\\", "/"));
+                WorldCreator wc = new WorldCreator(internalPathFinal.replace("\\", "/"));
                 if (gen.equalsIgnoreCase("FLAT")) wc.type(WorldType.FLAT);
                 else if (gen.equalsIgnoreCase("VOID")) wc.generator(new VoidChunkGenerator());
 

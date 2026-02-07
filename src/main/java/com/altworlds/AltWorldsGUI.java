@@ -1953,7 +1953,6 @@ public class AltWorldsGUI implements Listener {
         return (meta instanceof SkullMeta skull) ? skull : null;
     }
 
-    @SuppressWarnings("deprecation")
     private static Inventory createMenu(int size, String title) {
         return Bukkit.createInventory(null, size, c(title));
     }
