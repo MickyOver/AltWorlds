@@ -1456,6 +1456,7 @@ public class AltWorldsService implements Listener {
         String internalPath = config.getString("worlds." + oldName + ".internal");
         if (internalPath == null) {
             p.sendMessage("§cWorld not found.");
+            return;
         }
         World w = Bukkit.getWorld(internalPath);
 
