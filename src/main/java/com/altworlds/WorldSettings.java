@@ -12,6 +12,7 @@ public enum WorldSettings {
     // WORLD_CHAT ELIMINADO
     VISITORS("allowVisitors", "Allow Visitors", Material.OAK_DOOR, "Let others join via /aw visit", Category.CUSTOM, null),
     PUBLIC("public", "Public Listing", Material.GLOBE_BANNER_PATTERN, "Show in Explorer Menu", Category.CUSTOM, null),
+    DIFFICULTY("difficulty", "World Difficulty", Material.IRON_HELMET, "Peaceful, Normal or Hard", Category.CUSTOM, null),
 
     DAY_CYCLE("doDaylightCycle", "Day/Night Cycle", Material.CLOCK, "Sun moves", Category.GAMERULE, GameRule.DO_DAYLIGHT_CYCLE),
     WEATHER("doWeatherCycle", "Weather Cycle", Material.WATER_BUCKET, "Rain/Storms happen", Category.GAMERULE, GameRule.DO_WEATHER_CYCLE),

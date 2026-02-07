@@ -1,9 +1,8 @@
 package com.altworlds;
 
-import com.altworlds.WorldHandle;
-import com.altworlds.WorldManager;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -37,6 +36,53 @@ public class AltWorldsService implements Listener {
     private final AltWorldsPlugin plugin;
     private final WorldManager worldManager;
 
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
+    private static Component c(String legacy) {
+        return legacy == null ? Component.empty() : LEGACY.deserialize(legacy);
+    }
+
+    private static String plain(Component component) {
+        return component == null ? "" : PLAIN.serialize(component);
+    }
+
+    private static String plainDisplayName(ItemMeta meta) {
+        if (meta == null) return "";
+        return plain(meta.displayName());
+    }
+
+    private static String stripLegacy(String legacy) {
+        return legacy == null ? "" : plain(LEGACY.deserialize(legacy));
+    }
+
+    private static GameMode parseGameMode(String raw, GameMode fallback) {
+        if (raw == null || raw.isBlank()) return fallback;
+        try {
+            return GameMode.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return fallback;
+        }
+    }
+
+    private static UUID parseUuid(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return UUID.fromString(raw.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static Difficulty parseDifficulty(String raw, Difficulty fallback) {
+        if (raw == null || raw.isBlank()) return fallback;
+        try {
+            return Difficulty.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return fallback;
+        }
+    }
+
     // CARPETAS Y RUTAS
     private final File playersDataFolder;
     private final File settingsDataFolder; // Nueva carpeta data/settings
@@ -61,7 +107,6 @@ public class AltWorldsService implements Listener {
 
     // DATOS TEMPORALES
     private final Map<UUID, BukkitTask> pendingTeleports = new HashMap<>();
-    private final Map<UUID, Location> startLocations = new HashMap<>();
     private final Map<UUID, WorldInvite> pendingInvites = new HashMap<>();
 
     public AltWorldsService(AltWorldsPlugin plugin, WorldManager worldManager) {
@@ -70,13 +115,13 @@ public class AltWorldsService implements Listener {
 
         // Inicializar carpetas base
         this.playersDataFolder = new File(plugin.getDataFolder(), "data/players");
-        if (!playersDataFolder.exists()) playersDataFolder.mkdirs();
+        ensureDir(playersDataFolder, "players data");
 
         this.settingsDataFolder = new File(plugin.getDataFolder(), "data/settings");
-        if (!settingsDataFolder.exists()) settingsDataFolder.mkdirs();
+        ensureDir(settingsDataFolder, "settings data");
 
         // Asegurar carpeta de mundos de usuarios
-        new File(BASE_USER_WORLDS_PATH).mkdirs();
+        ensureDir(new File(BASE_USER_WORLDS_PATH), "user worlds");
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
         loadData();
@@ -98,7 +143,7 @@ public class AltWorldsService implements Listener {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.getGameMode() == GameMode.SPECTATOR && !p.hasPermission("altworlds.admin")) {
-                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("§eType §6/aw lobby §eto exit"));
+                    p.sendActionBar(c("§eType §6/aw lobby §eto exit"));
                 }
             }
         }, 0L, 20L);
@@ -106,17 +151,17 @@ public class AltWorldsService implements Listener {
 
     public void loadData() {
         // Crear estructura bÃ¡sica de carpetas fÃ­sicas
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
-        new File(plugin.getDataFolder(), "data").mkdirs();
-        new File(plugin.getDataFolder(), "data/players").mkdirs();
-        new File(plugin.getDataFolder(), "data/settings").mkdirs();
-        new File(BASE_USER_WORLDS_PATH).mkdirs();
+        ensureDir(plugin.getDataFolder(), "plugin data folder");
+        ensureDir(new File(plugin.getDataFolder(), "data"), "data");
+        ensureDir(new File(plugin.getDataFolder(), "data/players"), "players data");
+        ensureDir(new File(plugin.getDataFolder(), "data/settings"), "settings data");
+        ensureDir(new File(BASE_USER_WORLDS_PATH), "user worlds");
 
         // Carpetas fÃ­sicas para contenido (Schematics/Mundos fuente)
-        new File(plugin.getDataFolder(), "templates").mkdirs();
-        new File(plugin.getDataFolder(), "private-worlds").mkdirs();
-        new File(plugin.getDataFolder(), "auto-worlds").mkdirs();
-        new File(plugin.getDataFolder(), "all-worlds").mkdirs();
+        ensureDir(new File(plugin.getDataFolder(), "templates"), "templates");
+        ensureDir(new File(plugin.getDataFolder(), "private-worlds"), "private-worlds");
+        ensureDir(new File(plugin.getDataFolder(), "auto-worlds"), "auto-worlds");
+        ensureDir(new File(plugin.getDataFolder(), "all-worlds"), "all-worlds");
 
         // 1. Cargar configuraciones (Esto crea/lee los YML en data/settings/)
         reloadTemplates();
@@ -133,19 +178,19 @@ public class AltWorldsService implements Listener {
         // ConfiguraciÃ³n: AUTO-WORLDS
         // Escanea la carpeta fÃ­sica "auto-worlds" pero guarda la config en "data/settings/auto-worlds.yml"
         File autoDir = new File(plugin.getDataFolder(), "auto-worlds");
-        if (!autoDir.exists()) autoDir.mkdirs();
+        ensureDir(autoDir, "auto-worlds");
         File autoYml = new File(settingsDataFolder, "auto-worlds.yml");
         this.autoWorldsSourceCfg = loadAndPopulateSource(autoDir, autoYml, "auto-worlds");
 
         // ConfiguraciÃ³n: PRIVATE-WORLDS
         File privDir = new File(plugin.getDataFolder(), "private-worlds");
-        if (!privDir.exists()) privDir.mkdirs();
+        ensureDir(privDir, "private-worlds");
         File privYml = new File(settingsDataFolder, "private-worlds.yml");
         this.privateWorldsSourceCfg = loadAndPopulateSource(privDir, privYml, "private-worlds");
 
         // ConfiguraciÃ³n: ALL-WORLDS (Mundos de servidor)
         File allDir = new File(plugin.getDataFolder(), "all-worlds");
-        if (!allDir.exists()) allDir.mkdirs();
+        ensureDir(allDir, "all-worlds");
         File allYml = new File(settingsDataFolder, "all-worlds.yml");
         this.allWorldsSourceCfg = loadAndPopulateSource(allDir, allYml, "all-worlds");
 
@@ -158,9 +203,7 @@ public class AltWorldsService implements Listener {
      * la aÃ±ade al 'ymlFile' (ubicado en data/settings).
      */
     private YamlConfiguration loadAndPopulateSource(File sourceDir, File ymlFile, String rootSection) {
-        if (!ymlFile.exists()) {
-            try { ymlFile.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
-        }
+        ensureFile(ymlFile, ymlFile.getName());
         YamlConfiguration config = YamlConfiguration.loadConfiguration(ymlFile);
         File[] folders = sourceDir.listFiles(File::isDirectory);
         boolean changed = false;
@@ -179,7 +222,8 @@ public class AltWorldsService implements Listener {
             }
         }
         if (changed) {
-            try { config.save(ymlFile); } catch (IOException e) { e.printStackTrace(); }
+            try { config.save(ymlFile); }
+            catch (IOException e) { plugin.getLogger().warning("Could not save " + ymlFile.getPath() + ": " + e.getMessage()); }
         }
         return config;
     }
@@ -190,10 +234,9 @@ public class AltWorldsService implements Listener {
         // Si no existe, lo creamos con valores por defecto
         if (!lobbyYml.exists()) {
             try {
-                lobbyYml.createNewFile();
+                ensureFile(lobbyYml, "lobby.yml");
                 YamlConfiguration config = YamlConfiguration.loadConfiguration(lobbyYml);
 
-                String lobbyName = plugin.getConfig().getString("lobby.worldName", "lobby");
                 String configIcon = plugin.getConfig().getString("gui.main.lobby", "BEACON");
 
                 config.set("lobby.name", "&bServer Lobby");
@@ -211,7 +254,7 @@ public class AltWorldsService implements Listener {
 
                 config.save(lobbyYml);
             } catch (IOException e) {
-                e.printStackTrace();
+                plugin.getLogger().warning("Could not create lobby.yml: " + e.getMessage());
             }
         }
         // Cargar en memoria
@@ -225,7 +268,7 @@ public class AltWorldsService implements Listener {
             return playerFileCache.get(uuid);
         }
 
-        File[] found = playersDataFolder.listFiles((dir, name) -> name.endsWith(uuid.toString() + ".yml"));
+        File[] found = playersDataFolder.listFiles((dir, name) -> name.endsWith(uuid + ".yml"));
 
         if (found != null && found.length > 0) {
             File existingFile = found[0];
@@ -304,7 +347,7 @@ public class AltWorldsService implements Listener {
         if (internal == null || !new File(internal).exists()) {
             String ownerName = Bukkit.getOfflinePlayer(owner).getName();
             if (ownerName == null) ownerName = getPlayerConfig(owner).getString("name", "Unknown");
-            String userFolder = ownerName + "_" + owner.toString();
+            String userFolder = ownerName + "_" + owner;
             internal = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + wName;
         }
 
@@ -313,6 +356,35 @@ public class AltWorldsService implements Listener {
 
         YamlConfiguration config = getUserSettingsConfig(worldFolder.getParentFile());
         return config.getBoolean("worlds." + wName + ".settings." + key, def);
+    }
+
+    public String getSettingString(UUID owner, String wName, String key, String def) {
+        // 1. LOBBY (Prioridad)
+        if (isLobbyWorld(wName)) {
+            if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+            return lobbySettingsCfg.getString("lobby.settings." + key, def);
+        }
+
+        // 2. MUNDOS DEL SERVIDOR (All-Worlds)
+        if (owner.equals(SERVER_UUID)) {
+            return allWorldsSourceCfg.getString("all-worlds." + wName + ".settings." + key, def);
+        }
+
+        // 3. MUNDOS DE JUGADOR
+        String internal = getPlayerConfig(owner).getString("worlds." + wName + ".internal");
+
+        if (internal == null || !new File(internal).exists()) {
+            String ownerName = Bukkit.getOfflinePlayer(owner).getName();
+            if (ownerName == null) ownerName = getPlayerConfig(owner).getString("name", "Unknown");
+            String userFolder = ownerName + "_" + owner;
+            internal = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + wName;
+        }
+
+        File worldFolder = new File(internal);
+        if (!worldFolder.exists()) return def;
+
+        YamlConfiguration config = getUserSettingsConfig(worldFolder.getParentFile());
+        return config.getString("worlds." + wName + ".settings." + key, def);
     }
 
     public void setWorldSetting(UUID owner, String wName, String key, boolean value) {
@@ -351,7 +423,58 @@ public class AltWorldsService implements Listener {
         if (internal == null || !new File(internal).exists()) {
             String ownerName = Bukkit.getOfflinePlayer(owner).getName();
             if (ownerName == null) ownerName = getPlayerConfig(owner).getString("name", "Unknown");
-            String userFolder = ownerName + "_" + owner.toString();
+            String userFolder = ownerName + "_" + owner;
+            internal = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + wName;
+        }
+
+        File worldFolder = new File(internal);
+        if (!worldFolder.exists()) return;
+
+        YamlConfiguration config = getUserSettingsConfig(worldFolder.getParentFile());
+        config.set("worlds." + wName + ".settings." + key, value);
+        saveUserSettingsConfig(worldFolder.getParentFile(), config);
+
+        World w = Bukkit.getWorld(internal);
+        if (w != null) applyGameRules(w);
+    }
+
+    public void setWorldSettingString(UUID owner, String wName, String key, String value) {
+        // 1. LOBBY
+        if (isLobbyWorld(wName)) {
+            if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+            lobbySettingsCfg.set("lobby.settings." + key, value);
+            try {
+                lobbySettingsCfg.save(new File(settingsDataFolder, "lobby.yml"));
+            } catch (IOException e) {
+                plugin.getLogger().warning("Failed to save lobby.yml settings: " + e.getMessage());
+            }
+
+            World lobby = Bukkit.getWorld(wName);
+            if (lobby == null) lobby = Bukkit.getWorld(plugin.getConfig().getString("lobby.worldName", "lobby"));
+            if (lobby != null) applyGameRules(lobby);
+            return;
+        }
+
+        // 2. MUNDOS DEL SERVIDOR
+        if (owner.equals(SERVER_UUID)) {
+            allWorldsSourceCfg.set("all-worlds." + wName + ".settings." + key, value);
+            try {
+                allWorldsSourceCfg.save(new File(settingsDataFolder, "all-worlds.yml"));
+            } catch (IOException e) {
+                plugin.getLogger().warning("Failed to save all-worlds.yml settings: " + e.getMessage());
+            }
+
+            World w = Bukkit.getWorld(new File(plugin.getDataFolder(), "all-worlds/" + wName).getPath().replace("\\", "/"));
+            if (w != null) applyGameRules(w);
+            return;
+        }
+
+        // 3. MUNDOS DE JUGADOR
+        String internal = getPlayerConfig(owner).getString("worlds." + wName + ".internal");
+        if (internal == null || !new File(internal).exists()) {
+            String ownerName = Bukkit.getOfflinePlayer(owner).getName();
+            if (ownerName == null) ownerName = getPlayerConfig(owner).getString("name", "Unknown");
+            String userFolder = ownerName + "_" + owner;
             internal = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + wName;
         }
 
@@ -386,7 +509,7 @@ public class AltWorldsService implements Listener {
         String ownerName = Bukkit.getOfflinePlayer(u).getName();
         if (ownerName == null) ownerName = getPlayerConfig(u).getString("name", "Unknown");
 
-        String userFolder = ownerName + "_" + u.toString();
+        String userFolder = ownerName + "_" + u;
         File folder = new File(BASE_USER_WORLDS_PATH, userFolder + "/" + w);
 
         if (!folder.exists()) {
@@ -428,7 +551,7 @@ public class AltWorldsService implements Listener {
         // 3. PLAYER WORLDS
         String ownerName = Bukkit.getOfflinePlayer(owner).getName();
         if (ownerName == null) ownerName = getPlayerConfig(owner).getString("name", "Unknown");
-        String userFolder = ownerName + "_" + owner.toString();
+        String userFolder = ownerName + "_" + owner;
         File folder = new File(BASE_USER_WORLDS_PATH, userFolder + "/" + wName);
 
         if (folder.exists()) {
@@ -446,7 +569,33 @@ public class AltWorldsService implements Listener {
         m.put("randomTickSpeed", true); m.put("mobGriefing", true); m.put("pvp", false);
         m.put("keepInventory", false); m.put("potions", true); m.put("doMobSpawning", true);
         m.put("gamemode", "SURVIVAL");
+        m.put("difficulty", "NORMAL");
         return m;
+    }
+
+    private void ensureDir(File dir, String label) {
+        if (dir.exists()) return;
+        if (!dir.mkdirs()) {
+            plugin.getLogger().warning("Could not create " + label + " at " + dir.getPath());
+        }
+    }
+
+    private void ensureFile(File file, String label) {
+        if (file.exists()) return;
+        try {
+            if (!file.createNewFile()) {
+                plugin.getLogger().warning("Could not create " + label + " at " + file.getPath());
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not create " + label + " at " + file.getPath() + ": " + e.getMessage());
+        }
+    }
+
+    private void safeDelete(File file, String label) {
+        if (!file.exists()) return;
+        if (!file.delete()) {
+            plugin.getLogger().warning("Failed to delete " + label + " at " + file.getPath());
+        }
     }
 
     private String capitalize(String s) {
@@ -504,7 +653,7 @@ public class AltWorldsService implements Listener {
             Location target = w.getSpawnLocation().add(0.5, 0, 0.5);
             scheduleTeleport(p, target, wName, () -> {
                 String gmStr = allWorldsSourceCfg.getString("all-worlds." + wName + ".settings.gamemode", "ADVENTURE");
-                try { p.setGameMode(GameMode.valueOf(gmStr)); } catch(Exception ignored){}
+                p.setGameMode(parseGameMode(gmStr, GameMode.ADVENTURE));
             });
         }
     }
@@ -524,7 +673,7 @@ public class AltWorldsService implements Listener {
         String ownerName = Bukkit.getOfflinePlayer(owner).getName();
         if (ownerName == null) ownerName = ownerConfig.getString("name", "Unknown");
 
-        String userFolder = ownerName + "_" + owner.toString();
+        String userFolder = ownerName + "_" + owner;
         String internalPath = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + worldName;
 
         if (!new File(internalPath).exists()) {
@@ -558,7 +707,7 @@ public class AltWorldsService implements Listener {
 
             scheduleTeleport(p, targetLoc, worldName, () -> {
                 Role role = getPlayerRole(owner, worldName, p.getUniqueId());
-                GameMode targetGM = null;
+                GameMode targetGM;
 
                 if (role == Role.VISITOR && !p.hasPermission("altworlds.admin")) {
                     targetGM = GameMode.SPECTATOR;
@@ -570,7 +719,7 @@ public class AltWorldsService implements Listener {
                             YamlConfiguration cfg = getUserSettingsConfig(new File(finalInternalPath).getParentFile());
                             def = cfg.getString("worlds." + worldName + ".settings.gamemode", "SURVIVAL");
                         }
-                        try { targetGM = GameMode.valueOf(def); } catch(Exception ignored){ targetGM = GameMode.SURVIVAL; }
+                        targetGM = parseGameMode(def, GameMode.SURVIVAL);
                     }
                 }
                 p.setGameMode(targetGM);
@@ -584,6 +733,7 @@ public class AltWorldsService implements Listener {
 
     // --- SERIALIZACIÃ“N BASE64 ---
 
+    @SuppressWarnings("deprecation")
     public String toBase64(ItemStack[] items) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -599,6 +749,7 @@ public class AltWorldsService implements Listener {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public ItemStack[] fromBase64(String data) {
         try {
             ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
@@ -698,16 +849,13 @@ public class AltWorldsService implements Listener {
         UUID uuid = p.getUniqueId();
         String name = p.getName();
         File worldsDir = new File(BASE_USER_WORLDS_PATH);
-        File correctFolder = new File(worldsDir, name + "_" + uuid.toString());
-
-        if (!correctFolder.exists()) {
-            correctFolder.mkdirs();
-        }
+        File correctFolder = new File(worldsDir, name + "_" + uuid);
+        ensureDir(correctFolder, "player folder");
         scanAndRegisterWorlds(uuid, name);
     }
 
     private void scanAndRegisterWorlds(UUID uuid, String name) {
-        File playerFolder = new File(BASE_USER_WORLDS_PATH, name + "_" + uuid.toString());
+        File playerFolder = new File(BASE_USER_WORLDS_PATH, name + "_" + uuid);
         if (!playerFolder.exists() || !playerFolder.isDirectory()) return;
 
         File[] contents = playerFolder.listFiles(File::isDirectory);
@@ -855,10 +1003,7 @@ public class AltWorldsService implements Listener {
     private void loadLobbyWorld() {
         if (Bukkit.getWorld(BASE_LOBBY_PATH) == null) {
             File f = new File(BASE_LOBBY_PATH);
-            boolean createdNow = false;
-            if (!f.exists() && plugin.getConfig().getBoolean("lobby.autoCreate", true)) {
-                createdNow = true;
-            }
+            boolean createdNow = !f.exists() && plugin.getConfig().getBoolean("lobby.autoCreate", true);
             if (f.exists() || createdNow) {
                 try {
                     WorldCreator wc = new WorldCreator(BASE_LOBBY_PATH);
@@ -868,7 +1013,9 @@ public class AltWorldsService implements Listener {
                         ensureLobbySettingsFile();
                         applyGameRules(w);
                         if (createdNow) {
-                            w.setSpawnLocation(0, 65, 0);
+                            if (!w.setSpawnLocation(0, 65, 0)) {
+                                plugin.getLogger().warning("Failed to set lobby spawn location.");
+                            }
                             createSafePlatform(w, 0, 65, 0);
                         }
                         worldManager.getHandle(w.getName()).touch();
@@ -925,7 +1072,7 @@ public class AltWorldsService implements Listener {
 
         List<String> worlds = listPlayerWorlds(uuid);
         if (!worlds.isEmpty()) {
-            setPlayerSetting(uuid, "homeWorld", worlds.get(0));
+            setPlayerSetting(uuid, "homeWorld", worlds.getFirst());
         } else {
             setPlayerSetting(uuid, "homeWorld", null);
         }
@@ -954,17 +1101,16 @@ public class AltWorldsService implements Listener {
         p.teleport(target);
 
         String mode = "ADVENTURE";
-        try {
-            if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+        if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+        if (lobbySettingsCfg != null) {
             mode = lobbySettingsCfg.getString("lobby.settings.gamemode", "ADVENTURE");
-        } catch(Exception ignored){}
-        try { p.setGameMode(GameMode.valueOf(mode)); } catch(Exception ignored){}
+        }
+        p.setGameMode(parseGameMode(mode, GameMode.ADVENTURE));
 
         updatePlayerInventory(p);
     }
 
     public void sendInvite(Player sender, String targetName) {
-        UUID ownerUuid = sender.getUniqueId();
         String currentWorld = sender.getWorld().getName();
 
         UUID worldOwner = getOwnerUuidByInternalWorldName(currentWorld);
@@ -1048,7 +1194,7 @@ public class AltWorldsService implements Listener {
     public void addJoinedWorldReference(UUID player, UUID owner, String wName) {
         YamlConfiguration conf = getPlayerConfig(player);
         List<String> joined = conf.getStringList("joined_worlds");
-        String ref = owner.toString() + ":" + wName;
+        String ref = owner + ":" + wName;
         if (!joined.contains(ref)) {
             joined.add(ref);
             conf.set("joined_worlds", joined);
@@ -1059,7 +1205,7 @@ public class AltWorldsService implements Listener {
     public void removeJoinedWorldReference(UUID player, UUID owner, String wName) {
         YamlConfiguration conf = getPlayerConfig(player);
         List<String> joined = conf.getStringList("joined_worlds");
-        String ref = owner.toString() + ":" + wName;
+        String ref = owner + ":" + wName;
         if (joined.remove(ref)) {
             conf.set("joined_worlds", joined);
             savePlayerConfig(player);
@@ -1177,6 +1323,7 @@ public class AltWorldsService implements Listener {
         sender.sendMessage("§cBanned " + display + " for " + msg);
     }
 
+    @SuppressWarnings("unused")
     public void unbanPlayer(Player sender, UUID targetUuid) {
         UUID ownerUuid = getOwnerUuidByInternalWorldName(sender.getWorld().getName());
         String wName = getWorldNameByInternal(sender.getWorld().getName());
@@ -1273,9 +1420,8 @@ public class AltWorldsService implements Listener {
     public void renameWorld(Player p, String oldName, String newName) {
         UUID uuid = p.getUniqueId();
 
-        if (!validateName(newName)) {
-            p.sendMessage(plugin.getConfig().getString("restrictions.names.errorMessage"));
-            return;
+        if (isInvalidName(newName)) {
+            p.sendMessage(plugin.getConfig().getString("restrictions.names.errorMessage", "§cInvalid name."));
         }
 
         File allWorldsDir = new File(plugin.getDataFolder(), "all-worlds");
@@ -1310,6 +1456,10 @@ public class AltWorldsService implements Listener {
 
         YamlConfiguration config = getPlayerConfig(uuid);
         String internalPath = config.getString("worlds." + oldName + ".internal");
+        if (internalPath == null) {
+            p.sendMessage("§cWorld not found.");
+            return;
+        }
         World w = Bukkit.getWorld(internalPath);
 
         if (w != null) {
@@ -1419,17 +1569,17 @@ public class AltWorldsService implements Listener {
         });
     }
 
-    public boolean validateName(String name) {
+    private boolean isInvalidName(String name) {
         int min = plugin.getConfig().getInt("restrictions.names.minLength", 3);
         int max = plugin.getConfig().getInt("restrictions.names.maxLength", 16);
         String regex = plugin.getConfig().getString("restrictions.names.regex", "^[a-zA-Z0-9_-]+$");
-        if (name.length() < min || name.length() > max) return false;
-        return Pattern.matches(regex, name);
+        if (name.length() < min || name.length() > max) return true;
+        return !Pattern.matches(regex, name);
     }
 
     public void setWorldBorder(Player p, double radius, Location center) {
         World w = p.getWorld();
-        if (!isOwner(p, w.getName()) && !p.hasPermission("altworlds.admin")) {
+        if (!(isOwner(p, w.getName()) || p.hasPermission("altworlds.admin"))) {
             p.sendMessage("§cYou are not the owner of this world.");
             return;
         }
@@ -1444,9 +1594,11 @@ public class AltWorldsService implements Listener {
 
     public void removeWorldBorder(Player p) {
         World w = p.getWorld();
-        if (!isOwner(p, w.getName()) && !p.hasPermission("altworlds.admin")) return;
-        w.getWorldBorder().reset();
-        p.sendMessage("§aWorld border removed.");
+        if (isOwner(p, w.getName()) || p.hasPermission("altworlds.admin")) {
+            w.getWorldBorder().reset();
+            p.sendMessage("§aWorld border removed.");
+            return;
+        }
     }
 
     private void scheduleTeleport(Player p, Location target, String destName, Runnable postTpAction) {
@@ -1468,11 +1620,9 @@ public class AltWorldsService implements Listener {
         }
 
         p.sendMessage("§eTeleporting to §f" + destName + "§e in " + delay + " seconds. §cDo not move.");
-        startLocations.put(p.getUniqueId(), p.getLocation());
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             pendingTeleports.remove(p.getUniqueId());
-            startLocations.remove(p.getUniqueId());
             performTeleport(p, target, destName, postTpAction, handle);
         }, delay * 20L);
 
@@ -1519,7 +1669,6 @@ public class AltWorldsService implements Listener {
                     e.getFrom().getBlockZ() != e.getTo().getBlockZ()) {
                 if (plugin.getConfig().getBoolean("teleport.cancelOnMove", true)) {
                     BukkitTask task = pendingTeleports.remove(e.getPlayer().getUniqueId());
-                    startLocations.remove(e.getPlayer().getUniqueId());
                     if (task != null) task.cancel();
                     e.getPlayer().sendMessage("§cTeleport cancelled because you moved.");
                 }
@@ -1536,15 +1685,13 @@ public class AltWorldsService implements Listener {
             applyGameRules(w);
             Location target = w.getSpawnLocation().add(0.5, 0, 0.5);
 
-            final World lobbyWorld = w;
-
             scheduleTeleport(p, target, "Lobby", () -> {
                 String mode = "ADVENTURE";
-                try {
-                    if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+                if (lobbySettingsCfg == null) ensureLobbySettingsFile();
+                if (lobbySettingsCfg != null) {
                     mode = lobbySettingsCfg.getString("lobby.settings.gamemode", "ADVENTURE");
-                } catch(Exception ignored){}
-                try { p.setGameMode(GameMode.valueOf(mode)); } catch(Exception ignored){}
+                }
+                p.setGameMode(parseGameMode(mode, GameMode.ADVENTURE));
                 updatePlayerInventory(p);
             });
             return true;
@@ -1610,8 +1757,8 @@ public class AltWorldsService implements Listener {
             if(!silent) owner.sendMessage("§cYou already have a world with that name.");
             return;
         }
-        if (!validateName(worldName)) {
-            if(!silent) owner.sendMessage(plugin.getConfig().getString("restrictions.names.errorMessage"));
+        if (isInvalidName(worldName)) {
+            if(!silent) owner.sendMessage(plugin.getConfig().getString("restrictions.names.errorMessage", "§cInvalid name."));
             return;
         }
 
@@ -1638,7 +1785,7 @@ public class AltWorldsService implements Listener {
 
         String genType = flags.getOrDefault("generator", "NORMAL");
 
-        String userFolder = owner.getName() + "_" + uuid.toString();
+        String userFolder = owner.getName() + "_" + uuid;
         String finalInternalName = BASE_USER_WORLDS_PATH + "/" + userFolder + "/" + worldName;
 
         File tplSource = null;
@@ -1678,10 +1825,10 @@ public class AltWorldsService implements Listener {
             if (!isVanilla && finalTplSource != null && finalTplSource.exists()) {
                 try {
                     copyDirectory(finalTplSource.toPath(), targetFolder.toPath());
-                    new File(targetFolder, "uid.dat").delete();
-                    new File(targetFolder, "session.lock").delete();
-                    new File(targetFolder, "settings.yml").delete();
-                    new File(targetFolder, "world-settings.yml").delete();
+                    safeDelete(new File(targetFolder, "uid.dat"), "uid.dat");
+                    safeDelete(new File(targetFolder, "session.lock"), "session.lock");
+                    safeDelete(new File(targetFolder, "settings.yml"), "settings.yml");
+                    safeDelete(new File(targetFolder, "world-settings.yml"), "world-settings.yml");
                     templateCopied = true;
                 } catch (IOException ex) {
                     plugin.getLogger().warning("Failed to copy template to " + targetFolder.getPath() + ": " + ex.getMessage());
@@ -1717,20 +1864,24 @@ public class AltWorldsService implements Listener {
                         w.setGameRule(GameRule.SPAWN_RADIUS, 0);
 
                         if (!wasTemplate) {
-                            if (finalGen.equalsIgnoreCase("VOID")) { w.getBlockAt(0, 64, 0).setType(Material.BEDROCK); w.setSpawnLocation(0, 65, 0); }
-                            else { adjustSpawnToSafeLocation(w); }
+                            if (finalGen.equalsIgnoreCase("VOID")) {
+                                w.getBlockAt(0, 64, 0).setType(Material.BEDROCK);
+                                if (!w.setSpawnLocation(0, 65, 0)) {
+                                    plugin.getLogger().warning("Failed to set spawn location for " + w.getName());
+                                }
+                            } else {
+                                adjustSpawnToSafeLocation(w);
+                            }
                         } else {
                             if (isUnsafe(w.getSpawnLocation().getBlock())) createSafePlatform(w, w.getSpawnLocation().getBlockX(), w.getSpawnLocation().getBlockY(), w.getSpawnLocation().getBlockZ());
                         }
 
-                        registerWorld(uuid, owner.getName(), worldName, finalInternalName, false, finalGm.name(), wasTemplate, type, finalGen);
+                        registerWorld(uuid, worldName, finalInternalName, finalGm.name(), wasTemplate, type, finalGen);
 
                         applyGameRules(w);
 
                         if (!silent) {
-                            performTeleport(owner, w.getSpawnLocation().add(0.5, 0, 0.5), worldName, () -> {
-                                owner.setGameMode(finalGm);
-                            }, handle);
+                            performTeleport(owner, w.getSpawnLocation().add(0.5, 0, 0.5), worldName, () -> owner.setGameMode(finalGm), handle);
                             owner.sendMessage("§aWorld created successfully!");
                         } else {
                             plugin.getLogger().info("Auto-created world " + worldName + " for " + owner.getName());
@@ -1741,7 +1892,7 @@ public class AltWorldsService implements Listener {
                         handle.removeLock();
                     }
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    plugin.getLogger().warning("World creation failed for " + worldName + ": " + ex.getMessage());
                     handle.removeLock();
                 }
             });
@@ -1757,8 +1908,11 @@ public class AltWorldsService implements Listener {
         String path = "worlds." + worldName;
         String type = config.getString(path + ".creationType", "vanilla");
         String gen = config.getString(path + ".generator", "NORMAL");
-        String gm = config.getString(path + ".ownerGamemode", "SURVIVAL");
         String internalPath = config.getString(path + ".internal");
+        if (internalPath == null) {
+            owner.sendMessage("§cWorld not found.");
+            return;
+        }
 
         // Validar permisos si es auto-world...
         if (type.startsWith("autoworld:") && !plugin.getConfig().getBoolean("auto-worlds.permissions.allowRegen", false) && !owner.hasPermission("altworlds.admin")) {
@@ -1792,10 +1946,6 @@ public class AltWorldsService implements Listener {
         // Para mantener a los miembros, es mejor NO tocar la config y regenerar a mano.
 
         // OPCIÃ“N SEGURA: Reutilizar lÃ³gica de creaciÃ³n
-        Map<String, String> flags = new HashMap<>();
-        flags.put("gm", gm);
-        flags.put("generator", gen);
-
         // Resolver template source en el hilo principal para evitar acceso async a configs
         File tplSource = null;
         if (!type.equals("vanilla") && !type.equals("creative")) {
@@ -1817,7 +1967,7 @@ public class AltWorldsService implements Listener {
                         plugin.getLogger().warning("Failed to copy template to " + worldFolder.getPath() + ": " + e.getMessage());
                     }
                     // Borrar uid.dat para evitar conflictos
-                    new File(worldFolder, "uid.dat").delete();
+                    safeDelete(new File(worldFolder, "uid.dat"), "uid.dat");
                 }
             }
 
@@ -1831,7 +1981,9 @@ public class AltWorldsService implements Listener {
                 if (newWorld != null) {
                     if (gen.equalsIgnoreCase("VOID")) {
                         newWorld.getBlockAt(0, 64, 0).setType(Material.BEDROCK);
-                        newWorld.setSpawnLocation(0, 65, 0);
+                        if (!newWorld.setSpawnLocation(0, 65, 0)) {
+                            plugin.getLogger().warning("Failed to set spawn location for " + newWorld.getName());
+                        }
                     } else if (type.equals("vanilla") || type.equals("creative")) {
                         adjustSpawnToSafeLocation(newWorld);
                     }
@@ -1841,6 +1993,142 @@ public class AltWorldsService implements Listener {
                 } else {
                     owner.sendMessage("§cError regenerating world.");
                 }
+            });
+        });
+    }
+
+    public void cloneWorld(Player actor, UUID ownerUuid, String sourceWorldName, String newWorldName) {
+        if (!actor.hasPermission("altworlds.admin")) { actor.sendMessage("Â§cNo permission."); return; }
+        if (ownerUuid == null || sourceWorldName == null) { actor.sendMessage("Â§cInvalid world."); return; }
+        if (isLobbyWorld(sourceWorldName)) { actor.sendMessage("Â§cLobby world cannot be cloned."); return; }
+
+        if (isInvalidName(newWorldName)) {
+            actor.sendMessage(plugin.getConfig().getString("restrictions.names.errorMessage", "§cInvalid name."));
+            return;
+        }
+
+        // --- SERVER WORLDS ---
+        if (ownerUuid.equals(SERVER_UUID)) {
+            if (allWorldsSourceCfg == null) { actor.sendMessage("Â§cServer worlds config not loaded."); return; }
+            if (!allWorldsSourceCfg.contains("all-worlds." + sourceWorldName)) {
+                actor.sendMessage("Â§cServer world not found.");
+                return;
+            }
+            if (allWorldsSourceCfg.contains("all-worlds." + newWorldName)) {
+                actor.sendMessage("Â§cA server world with that name already exists.");
+                return;
+            }
+
+            File sourceFolder = new File(plugin.getDataFolder(), "all-worlds/" + sourceWorldName);
+            File targetFolder = new File(plugin.getDataFolder(), "all-worlds/" + newWorldName);
+            if (!sourceFolder.exists()) { actor.sendMessage("Â§cWorld folder not found."); return; }
+            if (targetFolder.exists()) { actor.sendMessage("Â§cTarget folder already exists."); return; }
+
+            World w = Bukkit.getWorld(sourceFolder.getPath().replace("\\", "/"));
+            if (w != null) w.save();
+
+            actor.sendMessage("Â§eCloning server world... please wait.");
+
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    copyDirectory(sourceFolder.toPath(), targetFolder.toPath());
+                    safeDelete(new File(targetFolder, "uid.dat"), "uid.dat");
+                    safeDelete(new File(targetFolder, "session.lock"), "session.lock");
+                    safeDelete(new File(targetFolder, "settings.yml"), "settings.yml");
+                    safeDelete(new File(targetFolder, "world-settings.yml"), "world-settings.yml");
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to clone server world folder " + sourceFolder.getPath() + " to " + targetFolder.getPath() + ": " + e.getMessage());
+                    Bukkit.getScheduler().runTask(plugin, () -> actor.sendMessage("Â§cClone failed: " + e.getMessage()));
+                    return;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    ConfigurationSection oldSection = allWorldsSourceCfg.getConfigurationSection("all-worlds." + sourceWorldName);
+                    if (oldSection != null) {
+                        ConfigurationSection newSection = allWorldsSourceCfg.createSection("all-worlds." + newWorldName);
+                        for (String key : oldSection.getKeys(false)) {
+                            newSection.set(key, oldSection.get(key));
+                        }
+                        if (newSection.contains("name")) newSection.set("name", "&a" + newWorldName);
+                        try {
+                            allWorldsSourceCfg.save(new File(settingsDataFolder, "all-worlds.yml"));
+                        } catch (IOException e) {
+                            plugin.getLogger().warning("Failed to save all-worlds.yml after clone: " + e.getMessage());
+                        }
+                    } else {
+                        plugin.getLogger().warning("Missing all-worlds section for clone: " + sourceWorldName);
+                    }
+
+                    actor.sendMessage("Â§aServer world cloned as " + newWorldName + "!");
+                });
+            });
+            return;
+        }
+
+        // --- PLAYER WORLDS ---
+        YamlConfiguration ownerConfig = getPlayerConfig(ownerUuid);
+        if (!ownerConfig.contains("worlds." + sourceWorldName)) { actor.sendMessage("Â§cWorld not found."); return; }
+        if (ownerConfig.contains("worlds." + newWorldName)) { actor.sendMessage("Â§cYou already have a world with that name."); return; }
+
+        String sourceInternal = ownerConfig.getString("worlds." + sourceWorldName + ".internal");
+        if (sourceInternal == null) { actor.sendMessage("Â§cWorld not found."); return; }
+
+        File sourceFolder = new File(sourceInternal);
+        if (!sourceFolder.exists()) { actor.sendMessage("Â§cWorld folder not found."); return; }
+
+        File parent = sourceFolder.getParentFile();
+        File targetFolder = new File(parent, newWorldName);
+        if (targetFolder.exists()) { actor.sendMessage("Â§cTarget folder already exists."); return; }
+
+        World w = Bukkit.getWorld(sourceInternal);
+        if (w != null) w.save();
+
+        actor.sendMessage("Â§eCloning world... please wait.");
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                copyDirectory(sourceFolder.toPath(), targetFolder.toPath());
+                safeDelete(new File(targetFolder, "uid.dat"), "uid.dat");
+                safeDelete(new File(targetFolder, "session.lock"), "session.lock");
+                safeDelete(new File(targetFolder, "settings.yml"), "settings.yml");
+                safeDelete(new File(targetFolder, "world-settings.yml"), "world-settings.yml");
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to clone world folder " + sourceFolder.getPath() + " to " + targetFolder.getPath() + ": " + e.getMessage());
+                Bukkit.getScheduler().runTask(plugin, () -> actor.sendMessage("Â§cClone failed: " + e.getMessage()));
+                return;
+            }
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                YamlConfiguration cfg = getPlayerConfig(ownerUuid);
+                String oldSection = "worlds." + sourceWorldName;
+                String newSection = "worlds." + newWorldName;
+
+                ConfigurationSection data = cfg.getConfigurationSection(oldSection);
+                if (data != null) {
+                    cfg.set(newSection, data.getValues(true));
+                    cfg.set(newSection + ".internal", targetFolder.getPath().replace("\\", "/"));
+                    cfg.set(newSection + ".created", System.currentTimeMillis());
+                } else {
+                    plugin.getLogger().warning("Missing config section for world clone: " + oldSection);
+                }
+                savePlayerConfig(ownerUuid);
+
+                YamlConfiguration userSettings = getUserSettingsConfig(parent);
+                if (userSettings.contains(oldSection)) {
+                    ConfigurationSection oldS = userSettings.getConfigurationSection(oldSection);
+                    if (oldS != null) {
+                        userSettings.set(newSection, oldS.getValues(true));
+                        userSettings.set(newSection + ".name", "&a" + newWorldName);
+                    }
+                    saveUserSettingsConfig(parent, userSettings);
+                }
+
+                Set<UUID> members = getWorldMembers(ownerUuid, sourceWorldName);
+                for (UUID memberUuid : members) {
+                    addJoinedWorldReference(memberUuid, ownerUuid, newWorldName);
+                }
+
+                actor.sendMessage("Â§aWorld cloned as " + newWorldName + "!");
             });
         });
     }
@@ -1885,13 +2173,17 @@ public class AltWorldsService implements Listener {
             List<String> remaining = listPlayerWorlds(ownerUuid);
             remaining.remove(targetWorldName);
             if (!remaining.isEmpty()) {
-                setPlayerSetting(ownerUuid, "homeWorld", remaining.get(0));
+                setPlayerSetting(ownerUuid, "homeWorld", remaining.getFirst());
             } else {
                 setPlayerSetting(ownerUuid, "homeWorld", null);
             }
         }
 
         String internal = config.getString(path + ".internal");
+        if (internal == null) {
+            actor.sendMessage("§cWorld not found.");
+            return;
+        }
         World w = Bukkit.getWorld(internal);
         if (w != null) {
             for (Player p : w.getPlayers()) forceInstantLobby(p);
@@ -1912,7 +2204,7 @@ public class AltWorldsService implements Listener {
         savePlayerConfig(ownerUuid);
     }
 
-    private void registerWorld(UUID uuid, String name, String wName, String internal, boolean pub, String gm, boolean isTemplate, String type, String gen) {
+    private void registerWorld(UUID uuid, String wName, String internal, String gm, boolean isTemplate, String type, String gen) {
         YamlConfiguration config = getPlayerConfig(uuid);
         String wPath = "worlds." + wName;
         config.set(wPath + ".internal", internal.replace("\\", "/"));
@@ -1956,8 +2248,12 @@ public class AltWorldsService implements Listener {
         }
         world.setGameRule(GameRule.DO_TILE_DROPS, true);
 
+        String diffStr = getSettingString(owner, realName, "difficulty", "NORMAL");
+        Difficulty diff = parseDifficulty(diffStr, Difficulty.NORMAL);
+        world.setDifficulty(diff);
     }
 
+    @SuppressWarnings("unused")
     public void addLike(Player p, UUID owner, String wName) {
         YamlConfiguration config = getPlayerConfig(owner);
         String path = "worlds." + wName + ".stats.likes";
@@ -1965,6 +2261,7 @@ public class AltWorldsService implements Listener {
         if (likes.contains(p.getUniqueId().toString())) { p.sendMessage("§cYou already liked this world!"); return; }
         likes.add(p.getUniqueId().toString()); config.set(path, likes); savePlayerConfig(owner); p.sendMessage("§aYou liked " + wName + "!");
     }
+    @SuppressWarnings("unused")
     public int getLikes(UUID owner, String wName) { return getPlayerConfig(owner).getStringList("worlds." + wName + ".stats.likes").size(); }
     public void incrementVisits(UUID owner, String wName) { YamlConfiguration c = getPlayerConfig(owner); String path = "worlds." + wName + ".stats.visits"; int v = c.getInt(path, 0); c.set(path, v + 1); savePlayerConfig(owner); }
     public int getVisits(UUID owner, String wName) { return getPlayerConfig(owner).getInt("worlds." + wName + ".stats.visits", 0); }
@@ -2029,7 +2326,8 @@ public class AltWorldsService implements Listener {
         ConfigurationSection sec = config.getConfigurationSection("worlds." + wName + ".members");
         if (sec != null) {
             for (String key : sec.getKeys(false)) {
-                try { members.add(UUID.fromString(key)); } catch(Exception ignored){}
+                UUID memberUuid = parseUuid(key);
+                if (memberUuid != null) members.add(memberUuid);
             }
         }
         return members;
@@ -2050,7 +2348,7 @@ public class AltWorldsService implements Listener {
         String path = "worlds." + wName + ".members." + target + ".gamemode";
         String gmStr = config.getString(path);
         if (gmStr != null) {
-            try { return GameMode.valueOf(gmStr); } catch(Exception ignored){}
+            return parseGameMode(gmStr, null);
         }
         return null;
     }
@@ -2078,11 +2376,13 @@ public class AltWorldsService implements Listener {
         try { return Material.valueOf(s); } catch (Exception e) { return Material.CLOCK; }
     }
 
+    @SuppressWarnings("unused")
     public void setLobbyItemMaterial(Material mat) {
         plugin.getConfig().set("lobby.item.material", mat.name());
         plugin.saveConfig();
     }
 
+    @SuppressWarnings("unused")
     public void adminTeleport(Player p, String targetName, String worldName) {
         UUID targetUuid = findPlayerUuidByName(targetName);
         if (targetUuid != null) teleportToWorld(p, targetUuid, worldName);
@@ -2107,14 +2407,14 @@ public class AltWorldsService implements Listener {
     public boolean isCreativeWorld(UUID owner, String wName) {
         String type = getCreationType(owner, wName);
         if (type == null) return false;
-        return type.equalsIgnoreCase("creative") || type.equalsIgnoreCase("flat") || type.equalsIgnoreCase("void") || type.equalsIgnoreCase("creative");
+        return type.equalsIgnoreCase("creative") || type.equalsIgnoreCase("flat") || type.equalsIgnoreCase("void");
     }
 
     public boolean worldFolderExists(UUID owner, String wName) {
         if (owner.equals(SERVER_UUID)) return new File(plugin.getDataFolder(), "all-worlds/" + wName).exists();
         String name = Bukkit.getOfflinePlayer(owner).getName();
         if(name==null) name = getPlayerConfig(owner).getString("name", "Unknown");
-        return new File(BASE_USER_WORLDS_PATH, name+"_"+owner.toString()+"/"+wName).exists();
+        return new File(BASE_USER_WORLDS_PATH, name+"_"+owner+"/"+wName).exists();
     }
     public boolean isOwner(Player p, String internalWorldName) {
         if (isAllWorld(internalWorldName)) return false;
@@ -2135,7 +2435,7 @@ public class AltWorldsService implements Listener {
         File p = f.getParentFile();
         if(p!=null && p.getName().contains("_")) {
             String[] parts = p.getName().split("_");
-            try { return UUID.fromString(parts[parts.length-1]); } catch(Exception e){}
+            return parseUuid(parts[parts.length-1]);
         }
         return null;
     }
@@ -2159,7 +2459,9 @@ public class AltWorldsService implements Listener {
                     if(conf.contains("worlds." + wName + ".members." + myUuid)) {
                         return UUID.fromString(ownerUuidStr);
                     }
-                } catch (Exception e) { continue; }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to parse owner UUID from filename " + name + ": " + e.getMessage());
+                }
             }
         }
         return null;
@@ -2167,7 +2469,7 @@ public class AltWorldsService implements Listener {
 
 
     public UUID findPlayerUuidByName(String name) {
-        name = ChatColor.stripColor(name);
+        name = stripLegacy(name);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getName().equalsIgnoreCase(name)) {
@@ -2245,10 +2547,14 @@ public class AltWorldsService implements Listener {
         Location spawn = w.getSpawnLocation();
         int highestY = w.getHighestBlockYAt(spawn.getBlockX(), spawn.getBlockZ());
         if (highestY < -60 || isUnsafe(w.getBlockAt(spawn.getBlockX(), highestY, spawn.getBlockZ()))) {
-            w.setSpawnLocation(spawn.getBlockX(), 65, spawn.getBlockZ());
+            if (!w.setSpawnLocation(spawn.getBlockX(), 65, spawn.getBlockZ())) {
+                plugin.getLogger().warning("Failed to set safe spawn location for " + w.getName());
+            }
             createSafePlatform(w, spawn.getBlockX(), 65, spawn.getBlockZ());
         } else {
-            w.setSpawnLocation(spawn.getBlockX(), highestY + 1, spawn.getBlockZ());
+            if (!w.setSpawnLocation(spawn.getBlockX(), highestY + 1, spawn.getBlockZ())) {
+                plugin.getLogger().warning("Failed to set spawn location for " + w.getName());
+            }
         }
     }
 
@@ -2285,7 +2591,7 @@ public class AltWorldsService implements Listener {
         for (int i = 0; i < p.getInventory().getSize(); i++) {
             ItemStack item = p.getInventory().getItem(i);
             if (item != null && item.getType() == mat) {
-                if (item.hasItemMeta() && item.getItemMeta().getDisplayName().contains("Main Menu")) {
+                if (item.hasItemMeta() && plainDisplayName(item.getItemMeta()).contains("Main Menu")) {
                     p.getInventory().setItem(i, null);
                 }
             }
@@ -2332,7 +2638,7 @@ public class AltWorldsService implements Listener {
 
                     // B) Probar ruta construida estÃ¡ndar (Fallback)
                     if (worldFolder == null) {
-                        String userFolder = ownerName + "_" + u.toString();
+                        String userFolder = ownerName + "_" + u;
                         File t = new File(BASE_USER_WORLDS_PATH, userFolder + "/" + wName);
                         if (t.exists()) worldFolder = t;
                     }
@@ -2393,8 +2699,8 @@ public class AltWorldsService implements Listener {
     private void giveItem(Player p, Material mat, int slot) {
         ItemStack clock = new ItemStack(mat);
         ItemMeta meta = clock.getItemMeta();
-        meta.setDisplayName("§a§lMain Menu §7(Right Click)");
-        meta.setLore(Collections.singletonList("§7Open AltWorlds Menu"));
+        meta.displayName(c("§a§lMain Menu §7(Right Click)"));
+        meta.lore(List.of(c("§7Open AltWorlds Menu")));
         clock.setItemMeta(meta);
         p.getInventory().setItem(slot, clock);
     }
@@ -2410,7 +2716,7 @@ public class AltWorldsService implements Listener {
             // Recargar para actualizar cachÃ©s
             reloadTemplates();
         } catch (IOException e) {
-            e.printStackTrace();
+            plugin.getLogger().warning("Failed to save templates.yml: " + e.getMessage());
         }
     }
 
@@ -2445,7 +2751,7 @@ public class AltWorldsService implements Listener {
                         if (internalPath != null && new File(internalPath).exists()) {
                             exists = true;
                         } else {
-                            String userFolder = ownerName + "_" + u.toString();
+                            String userFolder = ownerName + "_" + u;
                             if (new File(BASE_USER_WORLDS_PATH, userFolder + "/" + wName).exists()) exists = true;
                         }
 
@@ -2461,7 +2767,7 @@ public class AltWorldsService implements Listener {
                         list.add(new WorldInfo(wName, ownerName, u, l, v, cp));
                     }
                 } catch (Exception e) {
-                    // Ignorar errores de parseo
+                    plugin.getLogger().warning("Failed to parse world data for " + f.getName() + ": " + e.getMessage());
                 }
             }
         }
@@ -2485,7 +2791,7 @@ public class AltWorldsService implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         Material mat = getLobbyItemMaterial();
         if ((e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) && e.getItem() != null && e.getItem().getType() == mat) {
-            if (e.getItem().hasItemMeta() && e.getItem().getItemMeta().getDisplayName().contains("Main Menu")) {
+            if (e.getItem().hasItemMeta() && plainDisplayName(e.getItem().getItemMeta()).contains("Main Menu")) {
                 e.setCancelled(true);
                 plugin.getGui().openMain(e.getPlayer());
             }
@@ -2496,23 +2802,15 @@ public class AltWorldsService implements Listener {
     public void onDrop(PlayerDropItemEvent e) {
         Material mat = getLobbyItemMaterial();
         ItemStack dropped = e.getItemDrop().getItemStack();
-        if (dropped.getType() == mat && dropped.hasItemMeta() && dropped.getItemMeta().getDisplayName().contains("Main Menu")) {
+        if (dropped.getType() == mat && dropped.hasItemMeta() && plainDisplayName(dropped.getItemMeta()).contains("Main Menu")) {
             String scope = plugin.getConfig().getString("lobby.item.scope", "LOBBY_ONLY");
-            if (scope.equals("EVERYWHERE")) {
-                e.setCancelled(true);
-            } else {
-                if (isLobbyWorld(e.getPlayer().getWorld().getName())) {
-                    e.setCancelled(true);
-                } else {
-                    e.setCancelled(false);
-                }
-            }
+            e.setCancelled(scope.equals("EVERYWHERE") || isLobbyWorld(e.getPlayer().getWorld().getName()));
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
-        if (e.getBlock().getWorld().getGameRuleValue(GameRule.DO_TILE_DROPS)) {
+        if (Boolean.TRUE.equals(e.getBlock().getWorld().getGameRuleValue(GameRule.DO_TILE_DROPS))) {
             e.setDropItems(true);
         }
     }
@@ -2520,3 +2818,5 @@ public class AltWorldsService implements Listener {
 
     @EventHandler public void onInventoryClick(InventoryClickEvent e) { if (isLobbyWorld(e.getWhoClicked().getWorld().getName()) && e.getWhoClicked().getGameMode() != GameMode.CREATIVE) e.setCancelled(true); }
 }
+
+

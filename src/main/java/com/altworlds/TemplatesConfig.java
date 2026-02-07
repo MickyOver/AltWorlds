@@ -1,6 +1,7 @@
 package com.altworlds;
 
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -21,17 +22,23 @@ public class TemplatesConfig {
 
         // 1. Carpetas fÃ­sicas de plantillas (schematics/mundos) siguen en /plugins/AltWorlds/templates
         File templatesDir = new File(plugin.getDataFolder(), "templates");
-        if (!templatesDir.exists()) templatesDir.mkdirs();
+        if (!templatesDir.exists() && !templatesDir.mkdirs()) {
+            plugin.getLogger().warning("Could not create templates folder at " + templatesDir.getPath());
+        }
 
         // 2. Archivo de configuraciÃ³n visual (YML) ahora en /plugins/AltWorlds/data/settings
         File settingsDir = new File(plugin.getDataFolder(), "data/settings");
-        if (!settingsDir.exists()) settingsDir.mkdirs();
+        if (!settingsDir.exists() && !settingsDir.mkdirs()) {
+            plugin.getLogger().warning("Could not create settings folder at " + settingsDir.getPath());
+        }
 
         File ymlFile = new File(settingsDir, "templates.yml");
 
         if (!ymlFile.exists()) {
             try {
-                ymlFile.createNewFile();
+                if (!ymlFile.createNewFile()) {
+                    plugin.getLogger().warning("Could not create data/settings/templates.yml at " + ymlFile.getPath());
+                }
             } catch (IOException e) {
                 plugin.getLogger().severe("Could not create data/settings/templates.yml");
             }
@@ -73,8 +80,9 @@ public class TemplatesConfig {
         }
 
         // 5. Cargar datos a memoria
-        if (tc.config.getConfigurationSection("templates") != null) {
-            for (String key : tc.config.getConfigurationSection("templates").getKeys(false)) {
+        ConfigurationSection templatesSection = tc.config.getConfigurationSection("templates");
+        if (templatesSection != null) {
+            for (String key : templatesSection.getKeys(false)) {
                 if (!physicalFolders.contains(key)) continue;
 
                 TemplateData data = new TemplateData();
